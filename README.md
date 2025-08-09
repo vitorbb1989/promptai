@@ -1,4 +1,4 @@
-# PromptLab 🚀  
+# PromptAÍ 🚀  
 Plataforma brasileira para **teste, gerenciamento e otimização de prompts LLM**, integrando **OpenAI** e **PromptLayer** em um fluxo simples, seguro e escalável.  
 
 
