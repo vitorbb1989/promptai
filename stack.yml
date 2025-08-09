@@ -1,0 +1,79 @@
+version: "3.9"
+services:
+  frontend:
+    image: promptlab-frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    networks:
+      - minha_rede
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`app.${DOMAIN}`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls=true"
+      - "traefik.http.routers.app.tls.certresolver=le"
+      - "traefik.http.middlewares.app-headers.headers.customResponseHeaders.X-Frame-Options=SAMEORIGIN"
+      - "traefik.http.middlewares.app-headers.headers.customResponseHeaders.X-Content-Type-Options=nosniff"
+      - "traefik.http.routers.app.middlewares=app-headers@docker,compress@docker"
+      - "traefik.http.services.app.loadbalancer.server.port=8501"
+    secrets:
+      - OPENAI_API_KEY
+      - PROMPTLAYER_API_KEY
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  backend:
+    image: promptlab-backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    networks:
+      - minha_rede
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 384M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.${DOMAIN}`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls=true"
+      - "traefik.http.routers.api.tls.certresolver=le"
+      - "traefik.http.middlewares.api-headers.headers.customResponseHeaders.X-Frame-Options=SAMEORIGIN"
+      - "traefik.http.middlewares.api-headers.headers.customResponseHeaders.X-Content-Type-Options=nosniff"
+      - "traefik.http.routers.api.middlewares=api-headers@docker,compress@docker"
+      - "traefik.http.services.api.loadbalancer.server.port=8000"
+    secrets:
+      - OPENAI_API_KEY
+      - PROMPTLAYER_API_KEY
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  minha_rede:
+    external: true
+
+secrets:
+  OPENAI_API_KEY:
+    external: true
+  PROMPTLAYER_API_KEY:
+    external: true
